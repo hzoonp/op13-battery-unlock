@@ -166,3 +166,41 @@ bb19265101c422516b713b4c9a98fbdc2c29be6fe7515f5224eda25df9764e81
 本次没有热卸载内核模块或重启；内存中的 hook 已放行，不再强制原来的值。
 FCC 仍约 5150mAh，学习值没有随参数恢复立即复原。未进行完整放电能量测量，因此本次数据仅证明参数修改与恢复，
 以及电量计估计值变化，不证明真实放电容量提升比例，也不证明存在被锁住的标称容量。
+
+---
+
+## 2026-10-11 HEAD 修复版真机复测（standard 路线全量）
+
+被测构建：CI 为 `8c0c927` 构建的 `op13-battery-unlock.zip`（md5 `f13db960`，含 getter 返回值修复与
+uv_lock fd0 降级；`.ko` sha256 `77fc7c78…`）。设备同前节（PJZ110 / C17 `17.0.0.101` / 内核 6.6.118），
+厂商驱动 `oplus_chg_v2.ko` md5 `891cb06b`，profile 选中 `[ColorOS 16/17]`，6 个 hook。
+
+### 复测发现并修复的两个真机缺陷
+
+1. **getter 返回值语义（内核，ede4520 修复）**。本机 `oplus_fg_get_deep_term_volt` 成功时
+   **返回电压本身**（实测 dmesg：`直读 ADSP deep_term_volt = 3060 mV (rc=3060)`，写 2540 后
+   `rc=2540`），失败才返回负 errno；setter 则成功返回 0。加固提交 ac5cdd6 给两者统一加了
+   errno 判定，导致真机 `adsp_read` 恒 `-EIO`：service.sh 等 10 秒拿不到读数、恢复事务
+   整体不可用。v11 发布版（06ad948）不检查 rc，因此从未触发。
+2. **uv_lock 的 fd 继承（log.sh，8c0c927 修复）**。在 adb `su -c` 上下文里，fd 9 明明已在
+   父 shell 打开，flock 子进程却报 Bad file descriptor（toybox 0.8.13 与 busybox 同样）——
+   该上下文子进程不继承 fd>2；fd 0 正常。开机 / 管理器上下文无此问题（期间用户在管理器里
+   跑的「执行」完整恢复事务一次通过）。uv_lock 现按 flock 的 stderr 判别「锁被占」与
+   「机制不可用」，后者降级 fd 0，两端都被拒则立即失败。
+
+另修复测试矩阵自身两处（83631cf/8fd3571/917db47）：snap/racesnap 对 adb 瞬时断连增加有界重试；
+route.sh 的 `pfd_insmod` 仍匹配 v10 的 `insmod rc=0` 文案（v11 改为「insmod 成功」后 ok 分支
+不可达）；T10.5 的冷启动 active_cap 断言改为记录式——同一设备同流程两次结果相反
+（第 3 轮 no / 第 6 轮 yes），属「驱动开机 vote vs post-fs-data insmod」的跨子系统时序竞态。
+
+### 复测过程与最终结果
+
+共 7 轮。第 1 轮暴露缺陷 1（中断）；第 2 轮暴露缺陷 2（4/27/2）；第 3~6 轮为修复验证与
+环境干扰排查（USB 断连窗口、Wi-Fi DHCP 换 IP）；**第 7 轮（`20261011-024545`）全绿：
+31 PASS / 0 FAIL / 2 SKIP**（2 SKIP 为 C17 上结构性不可测的越狱用例 T4.1/T4.2），
+`--with-reboot` 口径，33 用例里 31 条适用全部实跑。
+
+第 7 轮关键状态（与厂商口径一致）：解耦态 target=2800 / vbat_uv=2800 / ADSP=2540；
+恢复事务（T2.x/T5.1/T7.2/T8.1/T9.2）实时目标 3060 全部通过；T9 三连软重启与并发竞态
+无残留、状态自洽。**本机 standard 路线的 HEAD 验收到此完成**；late-load 路线在 C17 上
+仍结构性不可测（GhostLock 不适用）。
