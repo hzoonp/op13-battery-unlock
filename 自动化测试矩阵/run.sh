@@ -937,10 +937,12 @@ t_T10_5() { want T10.5 || return 0; case_begin T10.5 "硬重启（标准启动�
   refresh_route
   AD "重启后仍是标准启动" boot_route eq standard
   AD "重启后 post-fs-data 仍执行" pfd_current eq yes
-  # ★ 标准启动路线的签名行为：真·冷启动下，uv_dev 由【驱动开机 vote】自动捕获。
-  #   必须在本模块已安装的前提下硬重启才成立（软重启/刚装完模块时驱动 vote 早已发生，
-  #   那时模块主动兜底才是对的 —— 见 T10.3 的注释）
-  AD "冷启动：无「主动触发 deep_dischg」（驱动 vote 自动捕获）" active_cap eq no
+  # ⚠️ 冷启动的 uv_dev 捕获方式【刻意不断言】（2026-10-11 C17/PJZ110 实测教训）：
+  #   它取决于「驱动开机 vote 的 getter 调用」与「KSU post-fs-data insmod」谁先发生 ——
+  #   跨子系统时序竞态，同一台设备同一流程两次结果不同（第 3 轮 no / 第 6 轮 yes）。
+  #   active_cap=yes（模块主动兜底）是设计内正确路径，且 adsp_read 是否可用由下方
+  #   功能断言严格验证；捕获方式仅记录，供 T10.3 的口径对照。
+  say "    本次冷启动捕获方式：active_cap=${DV[active_cap]:-?}（no=驱动 vote 先于模块加载；yes=模块主动兜底）"
   wait_key param_target 2800 15
   local exp; exp="$(derived_adsp 2800)"
   snap
