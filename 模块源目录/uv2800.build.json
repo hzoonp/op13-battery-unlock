@@ -7,7 +7,7 @@
     "编译前置/Module.symvers": "26a23b356216738eb5d33c77e61d373febe4175a4b83de214cb192ae37082fc9",
     "自动化测试矩阵/host/kernel_dependencies.py": "e2b8ebba6bef15b79e6d6634307fe520b79950ff2ba99d0d49feafd0f541e3b4"
   },
-  "module_sha256": "77fc7c7879c3b6e4e0869092a4c12f83030e50cebb91628bcce39db8ab145056",
+  "module_sha256": "93ac4b0231d323ba191ca765594e21e4d4a8ecefa61af7d59fb69196184d71b7",
   "abi": {
     "machine": "AArch64",
     "this_module_size": 1536,
