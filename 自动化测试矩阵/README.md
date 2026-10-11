@@ -266,7 +266,8 @@ index_t = 温度与 oplus,temp_range[-50,100,350] 比较（≤ 归下档）→ c
 `mid/mid_high/high` 相同 ⇒ **必须动态读表**，任何硬编码都会在 C17 上算错。C17 当前表已存档 `逆向脚本与产物/DT表/C17.0.0.101/`。
 
 ```sh
-# 设备侧转储 + 手工核对（工具在 dev/ 下）
+# 设备侧转储 + 手工核对（工具已归档至 dev/归档-未接线/，未接入 run.sh）
+adb push 自动化测试矩阵/dev/归档-未接线/dtterm.sh /data/local/tmp/uvtest/dtterm.sh
 adb shell 'su -c "sh /data/local/tmp/uvtest/dtterm.sh"'   # 打印 term_coeff（ratio 用表）与生效项
 ```
 > `dtterm.sh` 打印的是 **`term_coeff`（喂 ratio 的那张表）**，**不是**终止电压本体 —— 别拿它当原厂值。

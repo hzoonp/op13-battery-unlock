@@ -2,11 +2,11 @@
 
 日期：2026-10-03。设备 PJZ110 / ColorOS 17.0.0.101。用户选择先完成规格核查和准备，正式数小时放电开始前通知。
 
-> **状态存档（2026-10-09）**：本文与 `tools/battery_study/`、`tests/` 的配套工具是配合
-> **v10.8 发布包**做基线研究时编写的。`preflight.sh` 引用的
-> `/data/adb/modules/uv2800/restore-target.sh` 与 `parameters/restore` 属于 v10.8
-> 布局，在 v11（`restore.sh` + `resume` 参数）的模块上不可用。研究结论仍然有效，
-> 但如需在 v11 上复测，须先把这些工具移植到 v11 接口。
+> **状态存档（2026-10-09，2026-10-11 更新）**：本文与 `tools/battery_study/`、`tests/` 的
+> 配套工具最初配合 **v10.8 发布包**编写；`preflight.sh` 已于 2026-10-11 移植到 v11 接口
+> （`restore.sh` 的 DT 实时目标 + `uv_target_mv`/`uv_adsp_mv`/`resume` 状态检查），
+> 供电判据经 `tests/test-study-power.sh` 11 项用例回归。`tests/test-action.sh` 与
+> `tests/test-restore-target.sh` 测的是已删除的 v10 投票接口，保留为研究存档。研究结论仍然有效。
 
 ## 1. 规格核查
 

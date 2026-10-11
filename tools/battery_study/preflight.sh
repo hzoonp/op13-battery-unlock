@@ -1,8 +1,9 @@
 #!/system/bin/sh
 # 只读检查；没有采样或负载副作用。
-# 【v10.8 研究存档】本文件 source 的 restore-target.sh 与 parameters/restore
-# 检查属于 v10.8 布局；v11 模块（restore.sh + resume 参数）上会失败，
-# 复测前须移植到 v11 接口。其余供电判据逻辑与版本无关。
+# 【v11 接口】2026-10-11 自 v10.8 布局移植：restore-target.sh → restore.sh
+# （uv_restore_target 现为 DT 实时计算、无参数），恢复状态检查对齐 restore.sh
+# 的 uv_restore_check_hardware（uv_target_mv/uv_adsp_mv 双写 + resume 读 0）。
+# 供电判据逻辑与版本无关。
 study_power_is_discharge() {
     [ "$1" = 0 ] && [ "$2" = 0 ] && [ "$3" = 0 ] || return 1
     case "$4" in Discharging|'Not charging'|Full) ;; *) return 1 ;; esac
@@ -23,14 +24,17 @@ study_preflight() {
             echo "待安装模块未禁用" >&2; return 1;
         }
     fi
-    . /data/adb/modules/uv2800/restore-target.sh || return 1
+    . /data/adb/modules/uv2800/restore.sh || return 1
     target=$(uv_restore_target) || return 1
     displayed=$(cat /sys/class/oplus_chg/battery/vbat_uv) || return 1
     [ "$displayed" = "$target" ] || {
         echo "vbat_uv=$displayed，原厂目标=$target；先核查恢复状态" >&2; return 1;
     }
     if [ -d /sys/module/uv2800 ]; then
-        [ "$(cat /sys/module/uv2800/parameters/restore)" = "$target" ] || {
+        # 对齐 v11 restore.sh 的 uv_restore_check_hardware：hook 双目标 + 恢复模式读 0
+        [ "$(cat /sys/module/uv2800/parameters/uv_target_mv 2>/dev/null)" = "$target" ] &&
+            [ "$(cat /sys/module/uv2800/parameters/uv_adsp_mv 2>/dev/null)" = "$target" ] &&
+            [ "$(cat /sys/module/uv2800/parameters/resume 2>/dev/null)" = 0 ] || {
             echo "内存模块的恢复状态未确认" >&2; return 1;
         }
         [ -f /data/adb/uv2800_backup/skip ] || return 1

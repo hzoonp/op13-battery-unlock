@@ -30,7 +30,7 @@ jobs:
       version: ${{ steps.artifacts.outputs.version }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: 安装 Linux / LLVM 18 构建依赖
         run: |
@@ -48,7 +48,7 @@ jobs:
       # 命中时跳过 GB 级 fetch 和数分钟的 modules_prepare；未命中走原全量路径。
       # prepare-kernel.sh 对已就绪的树幂等：modules_prepare 重跑几乎零成本。
       - name: 恢复内核树缓存（固定提交）
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v6
         with:
           path: 编译用内核树
           key: kernel-6028f47faddaa27700f8dd3a1d83906ea8f27170-v2
@@ -63,7 +63,7 @@ jobs:
 
       - name: 保存内核树缓存（仅主分支/tag）
         if: github.event_name == 'push'
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v6
         with:
           path: 编译用内核树
           key: kernel-6028f47faddaa27700f8dd3a1d83906ea8f27170-v2-${{ github.run_id }}
@@ -89,7 +89,7 @@ jobs:
           cat dist/SHA256SUMS
 
       - name: 上传模块和构建清单
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: module-build
           path: dist/
@@ -97,7 +97,7 @@ jobs:
 
       - name: 保留配置差异和诊断日志
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: build-diagnostics
           path: |
@@ -116,10 +116,10 @@ jobs:
       contents: write
     steps:
       - name: Checkout release notes
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: 下载本次源码构建的产物
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: module-build
           path: dist
