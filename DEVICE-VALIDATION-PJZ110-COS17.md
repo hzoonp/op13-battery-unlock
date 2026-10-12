@@ -204,3 +204,35 @@ route.sh 的 `pfd_insmod` 仍匹配 v10 的 `insmod rc=0` 文案（v11 改为「
 恢复事务（T2.x/T5.1/T7.2/T8.1/T9.2）实时目标 3060 全部通过；T9 三连软重启与并发竞态
 无残留、状态自洽。**本机 standard 路线的 HEAD 验收到此完成**；late-load 路线在 C17 上
 仍结构性不可测（GhostLock 不适用）。
+
+---
+
+## 2026-10-12 OTA 后复测（17.0.0.101 → 17.0.0.103）
+
+系统 OTA 至 **`PJZ110_17.0.0.103(CN01)`**（Android 17），内核 release 未变
+（`6.6.118-android15-8-g9bc34d5b0c79-abogki537459655-4k`），但厂商驱动被替换：
+`oplus_chg_v2.ko` md5 `891cb06b…` → **`9f95f219…`**（字节数 11729224 → 11742008）。
+OTA 触发了一次 `uninstall.sh` 兜底清理，模块目录被移除、设备回到出厂态（vbat_uv=3060）。
+
+### 静态核对（装载前）
+
+用 `_work/ota-103/check_words.py`（objdump 符号表 + `.text` 按偏移取指令字）对新驱动逐条核对
+模块依赖的挂钩点：**C16/17 profile 的 6 个指令字全部匹配**（`oplus_comm_update_vbat_uv_thr`
++0x2c/+0x30、`vbat_uv_show` +0x10/+0x20、`oplus_fg_get_deep_term_volt` +0xe0、
+`oplus_fg_set_deep_term_volt` +0x34），三个必需符号（getter/setter/deep_dischg_count）均存在；
+C15 profile 的两处偏移**如预期不匹配**（该分支不适用于本机，正说明 profile 自适应在正常工作）。
+模块对驱动的调用全部走 kprobe 按名解析，且只从 vmlinux 导入符号（内核未变 → `Module.symvers`
+CRC 兼容性不受驱动替换影响）。
+
+### 真机复测
+
+被测构建：v11.1 Release 资产 `op13-battery-unlock.zip`（md5 `9c102a09`）。
+
+| 运行 | 结果 | 说明 |
+|---|---|---|
+| `20261012-222506` | 23/8/2 | OTA 后第 1 轮：T1/T2/T3.1/T7.2/T8.1/T9.x/T10.x 全过；8 个 FAIL 全部落在一次 USB 断连窗口（T3.2~T6.6），设备恢复后自 T7.2 起无失败 |
+| `20261012-224009` | **31/0/2** | **权威运行**：31 条适用用例全跑 0 FAIL |
+
+关键证据（新 ROM / 新驱动）：`pfd_insmod=ok`、模块加载 6 个 hook、profile 选中
+`[ColorOS 16/17]`；解耦态 target=2800 / vbat_uv=2800 / ADSP=2540；T10.2 冷启动 insmod
+与 T10.5 硬重启均通过；T6 组自定义电压全组通过。**结论：v11.1 在新 ROM 上无需任何修改即可正常工作。**
